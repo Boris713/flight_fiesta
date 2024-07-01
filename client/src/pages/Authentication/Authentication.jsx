@@ -1,15 +1,16 @@
-import React, { useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   doSignInWithEmailAndPassword,
   doSignInWithGoogle,
   doCreateUserWithEmailAndPassword,
-} from "../../../firebase/auth";
-import { useAuth } from "../../../contexts/authContexts";
-import "../../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
+} from "../../firebase/auth";
+import { useAuth } from "../../contexts/authContexts";
+import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
 
 const Authentication = () => {
   const { userLoggedIn } = useAuth; // will use in future to go straight to home page
+  const navigate = useNavigate();
 
   const [logInEmail, setLogInEmail] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
@@ -23,11 +24,14 @@ const Authentication = () => {
     e.preventDefault();
     if (!isSigningIn) {
       setIsSigningIn(true);
-      await doSignInWithEmailAndPassword(logInEmail, logInPassword).catch(
-        (err) => {
-          isSigningIn(false);
-        }
-      );
+      try {
+        await doSignInWithEmailAndPassword(logInEmail, logInPassword);
+        navigate("/home");
+        console.log("signed in");
+      } catch (err) {
+        console.error(err);
+        setIsSigningIn(false);
+      }
     }
   };
 
