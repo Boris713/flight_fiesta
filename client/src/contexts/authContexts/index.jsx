@@ -3,7 +3,7 @@ import { auth } from "../../firebase/firebase";
 import React, { useContext, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
-const AuthContext = React.createContext;
+const AuthContext = React.createContext();
 
 export function useAuth() {
   return useContext(AuthContext);
