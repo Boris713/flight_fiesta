@@ -44,7 +44,7 @@ const Nav = () => {
         </div>
         <ul className="navbar-nav ml-auto">
           <li className="nav-item active">
-            <a className="nav-link" href="http://localhost:5173/home">
+            <a className="nav-link" href="../../pages/Home/home">
               Home
             </a>
           </li>
