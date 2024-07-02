@@ -1,0 +1,14 @@
+.custom-container {
+  max-width: 95%;
+  margin: auto;
+  padding: 20px;
+  height: auto;
+}
+
+.card {
+  width: 100%;
+  max-width: 300px;
+  margin: 10px auto;
+  margin-right: 15px;
+  margin-left: 15px;
+}

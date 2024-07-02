@@ -1,0 +1,19 @@
+.card {
+  width: 100%;
+  max-width: 18rem;
+  margin: 15px auto;
+  overflow: hidden;
+}
+
+.card-img-top {
+  width: 100%;
+  height: auto;
+}
+
+.card-body {
+  padding: 15px;
+}
+
+.card-link {
+  margin-right: 5px;
+}

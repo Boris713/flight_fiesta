@@ -1,6 +1,7 @@
 import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
 
 const Nav = () => {
+  //Nav bar that will show in all places throughout website
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-light">
       <div className="container-fluid d-flex justify-content-between">
@@ -25,7 +26,7 @@ const Nav = () => {
             </li>
           </ul>
         </div>
-        <div className="mx-auto">
+        <div className="mx-auto d-flex flex-grow-1 justify-content-center">
           <form className="form-inline my-2 my-lg-0">
             <div className="input-group">
               <input
@@ -42,7 +43,7 @@ const Nav = () => {
             </div>
           </form>
         </div>
-        <ul className="navbar-nav ml-auto">
+        <ul className="navbar-nav">
           <li className="nav-item active">
             <a className="nav-link" href="../../pages/Home/home">
               Home
