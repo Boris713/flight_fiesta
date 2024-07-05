@@ -1,6 +1,13 @@
 import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import { useCity } from "../../contexts/cityContext/cityContext";
 
-const Nav = () => {
+const Nav = ({ children }) => {
+  const { setCity } = useCity();
+
+  const changeCity = (latitude, longitude) => {
+    console.log("City changed to: ", latitude, " ", longitude);
+    setCity([latitude, longitude]);
+  };
   //Nav bar that will show in all places throughout website
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-light">
@@ -11,18 +18,24 @@ const Nav = () => {
             type="button"
             data-toggle="dropdown"
           >
-            Dropdown Example
+            City
             <span className="caret"></span>
           </button>
           <ul className="dropdown-menu">
             <li>
-              <a href="#">Cancun</a>
+              <a href="#" onClick={() => changeCity(21.1619, -86.8515)}>
+                Cancun
+              </a>
             </li>
             <li>
-              <a href="#">San Francisco</a>
+              <a href="#" onClick={() => changeCity(37.7749, -122.4194)}>
+                San Francisco
+              </a>
             </li>
             <li>
-              <a href="#">New York</a>
+              <a href="#" onClick={() => changeCity(40.7128, -74.006)}>
+                New York
+              </a>
             </li>
           </ul>
         </div>
