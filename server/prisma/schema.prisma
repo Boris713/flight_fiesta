@@ -23,38 +23,38 @@ model User {
 }
 
 model Itinerary {
-  id              String          @id @default(autoincrement())
-  userId        String
+  id              Int             @id @default(autoincrement())
+  userId          String
   location        String
   title           String
   startDate       DateTime
   endDate         DateTime
   //Relations
   user            User            @relation(fields: [userId], references: [id])
-  activities      Activity[]      
+  activities      Activity[]
 }
 
 model Activity {
-  id              String          @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   location        String
   title           String
   category        String
   startTime       DateTime
   endTime         DateTime
   liked           Boolean         @default(false)
-  itineraryId     String?
+  itineraryId     Int?
   //Relations
   itinerary       Itinerary?      @relation(fields: [itineraryId], references: [id])
-  users            User[]         @relation("likedActivities")    
+  users           User[]         @relation("likedActivities")
 }
 
 model Interest {
-  id            String           @id @default(autoincrement())
-  userId        String
-  category      String
-  score         Int              @default(0)
+  id              Int               @id @default(autoincrement())
+  userId          String
+  category        String
+  score           Int              @default(0)
   //Relations
-  user          User             @relation(fields: [userId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
 }
 
 enum ActionType {

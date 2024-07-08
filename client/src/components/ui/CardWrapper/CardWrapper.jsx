@@ -1,24 +1,32 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../../../CardWrapper.css";
-import { useFillRecommendations } from "../../../hooks/FillRecommendations/useFillRecommendations";
+import { useCity } from "../../../contexts/cityContext/cityContext";
 import Card from "../Card/Card";
-// here will get kinds and then fetch data and map cards fetched
+import { act, useEffect, useState } from "react";
+
 const CardWrapper = ({ activity }) => {
-  // function that maps items to cards
-  const activityData = useFillRecommendations(activity);
+  const { city } = useCity();
+  const [activityInfo, setActivityInfo] = useState(null);
+
+  useEffect(() => {
+    fetch(
+      `http://localhost:3000/itinerary/activities?latitude=${city[0]}&longitude=${city[1]}&kinds=${activity}`
+    )
+      .then((response) => response.json())
+      .then((data) => setActivityInfo(data))
+      .catch((error) => console.error("Error fetching data:", error));
+  }, [city]);
 
   return (
     <div className="container mt-5 mb-5 custom-container bg-primary">
       <div>
-        {/* Will create Util to parse in future */}
         <h1 className="text-center text-white">
           Recommended {activity} nearby
         </h1>
       </div>
-      {/* Will fill dynamically with info from API */}
       <div className="row justify-content-center">
-        {activityData &&
-          activityData.features
+        {activityInfo &&
+          activityInfo.features
             .filter((feature) => feature.properties.name) // Filter out features without a name
             .slice(0, 5) // Limit to first 5 features
             .map((feature) => (
