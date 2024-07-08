@@ -5,9 +5,7 @@ const prisma = new PrismaClient();
 const axios = require("axios").default;
 
 router.get("/activities", async (req, res) => {
-  console.log("Received query parameters:", req.query);
   const { latitude, longitude, kinds } = req.query;
-  console.log("Latitude:", latitude, "Longitude:", longitude, "Kinds:", kinds);
   const baseUrl = "https://api.opentripmap.com/0.1/en/places/radius";
   const params = {
     radius: 15000,
@@ -16,12 +14,9 @@ router.get("/activities", async (req, res) => {
     kinds: kinds,
     apikey: process.env.MAP_API_KEY,
   };
-  console.log("API Key:", process.env.MAP_API_KEY);
   const urlWithParams = `${baseUrl}?${new URLSearchParams(params).toString()}`;
-  console.log("Requesting URL lol:", urlWithParams);
   try {
     const response = await axios.get(baseUrl, { params });
-    console.log("Response from API:", response);
     res.json(response.data);
   } catch (error) {
     console.error("Error status:", error.response?.status);
