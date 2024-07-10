@@ -12,3 +12,53 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id              String          @id @default(uuid())
+  name            String          @default("User")
+  //Relations
+  itineraries     Itinerary[]
+  likedActivities Activity[]      @relation("likedActivities")
+  interests       Interest[]
+}
+
+model Itinerary {
+  id              Int             @id @default(autoincrement())
+  userId          String
+  location        String
+  title           String
+  startDate       DateTime
+  endDate         DateTime
+  //Relations
+  user            User            @relation(fields: [userId], references: [id])
+  activities      Activity[]
+}
+
+model Activity {
+  id              Int             @id @default(autoincrement())
+  location        String
+  title           String
+  category        String
+  startTime       DateTime
+  endTime         DateTime
+  liked           Boolean         @default(false)
+  itineraryId     Int?
+  //Relations
+  itinerary       Itinerary?      @relation(fields: [itineraryId], references: [id])
+  users           User[]         @relation("likedActivities")
+}
+
+model Interest {
+  id              Int               @id @default(autoincrement())
+  userId          String
+  category        String
+  score           Int              @default(0)
+  //Relations
+  user            User             @relation(fields: [userId], references: [id])
+}
+
+enum ActionType {
+  CLICK
+  SEARCH
+  LIKE
+}

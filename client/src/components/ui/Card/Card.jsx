@@ -1,19 +1,19 @@
 import "../../../Card.css";
-const Card = () => {
+const Card = ({ activityInfo }) => {
+  console.log(activityInfo.properties.name);
   return (
     <div className="card">
+      {/* img link */}
       <img src="..." className="card-img-top" alt="Card image cap" />
       <div className="card-body">
-        <h5 className="card-title">Card title</h5>
-        <p className="card-text">
-          Some quick example text to build on the card title and make up the
-          bulk of the card's content.
-        </p>
-        <a href="#" className="card-link">
-          Card link
+        <h5 className="card-title">{activityInfo.properties.name}</h5>
+        {/* activity name */}
+        <a href="#" className="d-inline-block mr-2">
+          Learn More
         </a>
-        <a href="#" className="card-link">
-          Another link
+        {/* wiki link */}
+        <a href="#" className=" d-inline-block ">
+          Add to itinerary
         </a>
       </div>
     </div>

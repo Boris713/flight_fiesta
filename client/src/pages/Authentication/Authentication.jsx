@@ -5,7 +5,7 @@ import {
   doSignInWithGoogle,
   doCreateUserWithEmailAndPassword,
 } from "../../firebase/auth";
-import { useAuth } from "../../contexts/authContexts";
+import { useAuth } from "../../contexts/authContexts/authContexts";
 import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
 
 const Authentication = () => {

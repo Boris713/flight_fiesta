@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 import Nav from "./Nav";
 import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
-import { useAuth } from "../../contexts/authContexts";
+import { useAuth } from "../../contexts/authContexts/authContexts";
 
 const Header = () => {
   const { userLoggedIn } = useAuth();
