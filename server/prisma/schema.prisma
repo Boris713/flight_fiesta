@@ -15,6 +15,7 @@ datasource db {
 
 model User {
   id              String          @id @default(uuid())
+  email           String          @unique
   name            String          @default("User")
   //Relations
   itineraries     Itinerary[]
@@ -45,7 +46,7 @@ model Activity {
   itineraryId     Int?
   //Relations
   itinerary       Itinerary?      @relation(fields: [itineraryId], references: [id])
-  users           User[]         @relation("likedActivities")
+  users           User[]          @relation("likedActivities")
 }
 
 model Interest {

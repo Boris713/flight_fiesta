@@ -39,12 +39,37 @@ const Authentication = () => {
     e.preventDefault();
     if (!isSigningUp) {
       setIsSigningUp(true);
-      await doCreateUserWithEmailAndPassword(
-        registerEmail,
-        registerPassword
-      ).catch((err) => {
+      try {
+        const credentials = await doCreateUserWithEmailAndPassword(
+          registerEmail,
+          registerPassword
+        );
+        const id = credentials.user.uid;
+        const email = credentials.user.email;
+
+        fetch("http://localhost:3000/itinerary/create-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: id, email: email }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Success:", data);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      } catch (err) {
+        console.error(err);
         setIsSigningUp(false);
-      });
+      }
     }
   };
 
