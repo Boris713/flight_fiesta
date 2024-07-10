@@ -10,7 +10,6 @@ connection = psycopg2.connect(
     host=os.getenv("DB_HOST"),
     port=os.getenv("DB_PORT")
 )
-# add to .env
 
 query = """ 
 SELECT userId, category, score FROM Interests

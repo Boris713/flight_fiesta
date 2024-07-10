@@ -27,7 +27,6 @@ const Authentication = () => {
       try {
         await doSignInWithEmailAndPassword(logInEmail, logInPassword);
         navigate("/home");
-        console.log("signed in");
       } catch (err) {
         console.error(err);
         setIsSigningIn(false);
@@ -59,9 +58,6 @@ const Authentication = () => {
               throw new Error("Network response was not ok");
             }
             return response.json();
-          })
-          .then((data) => {
-            console.log("Success:", data);
           })
           .catch((error) => {
             console.error("Error:", error);
