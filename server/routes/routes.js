@@ -29,7 +29,7 @@ router.get("/activities", async (req, res) => {
   }
 });
 
-router.post("/create-user", async (req, res) => {
+router.post("/register", async (req, res) => {
   const { id, email, name } = req.body;
 
   try {
@@ -43,10 +43,10 @@ router.post("/create-user", async (req, res) => {
     res.status(201).json(user);
   } catch (error) {
     if (error.code === "P2002") {
-      res.status(409).send("A user with this email already exists.");
+      res.status(409).json("A user with this email already exists.");
     } else {
       console.error(error);
-      res.status(500).send("Error creating user");
+      res.status(500).json("Error creating user");
     }
   }
 });
@@ -77,13 +77,19 @@ router.post("/update-points", async (req, res) => {
 router.get("/recommendations", async (req, res) => {
   const { userId } = req.query;
   try {
-    exec(`python ../python/recommend.py ${userId}`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
-        return res.status(500).send("Error generating recommendations");
+    exec(
+      `python3 ../python/recommend.py ${userId}`,
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          return res.status(500).send("Error generating recommendations");
+        }
       }
-    });
+    );
+    const recommendations = JSON.parse(stdout);
+    res.json(recommendations);
   } catch (error) {
+    console.error(`Server error: ${error}`);
     res.status(500).send("Error recommending");
   }
 });

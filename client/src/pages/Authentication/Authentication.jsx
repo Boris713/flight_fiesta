@@ -45,8 +45,7 @@ const Authentication = () => {
         );
         const id = credentials.user.uid;
         const email = credentials.user.email;
-
-        fetch("http://localhost:3000/itinerary/create-user", {
+        fetch(`${import.meta.env.VITE_REACT_APP_HOST}/itinerary/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
