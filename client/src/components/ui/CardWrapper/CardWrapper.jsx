@@ -7,10 +7,11 @@ import { act, useEffect, useState } from "react";
 const CardWrapper = ({ activity }) => {
   const { city } = useCity();
   const [activityInfo, setActivityInfo] = useState(null);
-
   useEffect(() => {
     fetch(
-      `http://localhost:3000/itinerary/activities?latitude=${city[0]}&longitude=${city[1]}&kinds=${activity}`
+      `${import.meta.env.VITE_REACT_APP_HOST}/itinerary/activities?latitude=${
+        city[0]
+      }&longitude=${city[1]}&kinds=${activity}`
     )
       .then((response) => response.json())
       .then((data) => setActivityInfo(data))

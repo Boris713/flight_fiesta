@@ -27,7 +27,6 @@ const Authentication = () => {
       try {
         await doSignInWithEmailAndPassword(logInEmail, logInPassword);
         navigate("/home");
-        console.log("signed in");
       } catch (err) {
         console.error(err);
         setIsSigningIn(false);
@@ -39,12 +38,33 @@ const Authentication = () => {
     e.preventDefault();
     if (!isSigningUp) {
       setIsSigningUp(true);
-      await doCreateUserWithEmailAndPassword(
-        registerEmail,
-        registerPassword
-      ).catch((err) => {
+      try {
+        const credentials = await doCreateUserWithEmailAndPassword(
+          registerEmail,
+          registerPassword
+        );
+        const id = credentials.user.uid;
+        const email = credentials.user.email;
+        fetch(`${import.meta.env.VITE_REACT_APP_HOST}/itinerary/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: id, email: email }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      } catch (err) {
+        console.error(err);
         setIsSigningUp(false);
-      });
+      }
     }
   };
 
