@@ -3,7 +3,7 @@ import { auth } from "../../firebase/firebase";
 import React, { useContext, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
-const AuthContext = React.createContext();
+export const AuthContext = React.createContext();
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -30,11 +30,14 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }
 
-  const value = {
-    currentUser,
-    userLoggedIn,
-    loading,
-  };
+  const value = React.useMemo(
+    () => ({
+      currentUser,
+      userLoggedIn,
+      loading,
+    }),
+    [currentUser, userLoggedIn, loading]
+  );
 
   return (
     <AuthContext.Provider value={value}>
