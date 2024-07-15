@@ -76,21 +76,43 @@ router.post("/update-points", async (req, res) => {
 
 router.get("/recommendations", async (req, res) => {
   const { userId } = req.query;
+  console.log(`Fetching recommendations for userId: ${userId}`);
   try {
-    exec(
-      `python3 ../python/recommend.py ${userId}`,
-      (error, stdout, stderr) => {
-        if (error) {
-          console.error(`exec error: ${error}`);
-          return res.status(500).send("Error generating recommendations");
-        }
+    const interests = await prisma.interest.findMany();
+    if (interests.length === 0) {
+      console.log("No interests found.");
+      return res.status(404).send("No interests found.");
+    }
+    const data = { userId: userId, interests: interests };
+    const dataString = JSON.stringify(data);
+    const scriptPath =
+      "/Users/borishernandez/Desktop/Meta/Meta_Capstone/server/python/recommend.py";
+    const pythonProcess = exec(`/usr/bin/python3 ${scriptPath}`);
+    pythonProcess.stdin.write(dataString);
+    pythonProcess.stdin.end();
+    let pythonOutput = "";
+    pythonProcess.stdout.on("data", (data) => {
+      pythonOutput += data;
+    });
+    pythonProcess.stderr.on("data", (data) => {
+      console.error(`stderr: ${data}`);
+    });
+    pythonProcess.on("close", (code) => {
+      if (code !== 0) {
+        console.error(`Python script exited with code ${code}`);
+        return res.status(500).send("Error generating recommendations");
       }
-    );
-    const recommendations = JSON.parse(stdout);
-    res.json(recommendations);
+      try {
+        const recommendations = JSON.parse(pythonOutput);
+        res.json(recommendations);
+      } catch (parseError) {
+        console.error("Failed to parse recommendations:", parseError);
+        res.status(500).send("Server error: Failed to parse recommendations");
+      }
+    });
   } catch (error) {
-    console.error(`Server error: ${error}`);
-    res.status(500).send("Error recommending");
+    console.error("Failed to fetch interests:", error);
+    res.status(500).send("Failed to fetch interests");
   }
 });
 
