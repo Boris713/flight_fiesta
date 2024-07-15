@@ -1,11 +1,11 @@
 import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
 import { useCity } from "../../contexts/cityContext/cityContext";
+import { Link } from "react-router-dom";
 
 const Nav = ({ children }) => {
   const { setCity } = useCity();
 
   const changeCity = (latitude, longitude) => {
-    console.log("City changed to: ", latitude, " ", longitude);
     setCity([latitude, longitude]);
   };
   //Nav bar that will show in all places throughout website
@@ -57,15 +57,15 @@ const Nav = ({ children }) => {
           </form>
         </div>
         <ul className="navbar-nav">
-          <li className="nav-item active">
-            <a className="nav-link" href="../../pages/Home/home">
+          <li className="nav-item">
+            <Link className="nav-link" to="/Home">
               Home
-            </a>
+            </Link>
           </li>
           <li className="nav-item">
-            <a className="nav-link" href="#">
+            <Link className="nav-link" to="/itinerary-creator">
               Create New
-            </a>
+            </Link>
           </li>
         </ul>
       </div>
