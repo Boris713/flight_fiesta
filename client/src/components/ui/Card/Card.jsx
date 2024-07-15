@@ -1,6 +1,5 @@
 import "../../../Card.css";
 const Card = ({ activityInfo }) => {
-  console.log(activityInfo.properties.name);
   return (
     <div className="card">
       {/* img link */}
