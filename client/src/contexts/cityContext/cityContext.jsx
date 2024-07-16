@@ -9,7 +9,6 @@ export function useCity() {
 
 export function CityProvider({ children }) {
   const [city, setCity] = useState({ coords: [37.7749, -122.4194], cityId: 1 });
-  console.log("Current city in provider:", city, " city: ");
   const value = {
     city,
     setCity,

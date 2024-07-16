@@ -75,11 +75,8 @@ router.post("/update-points", async (req, res) => {
 });
 
 router.get("/recommendations", async (req, res) => {
-  console.log("Request received with params:", req.query);
   const { userId, cityId } = req.query;
-  console.log(
-    `Fetching recommendations for userId: ${userId} and cityId: ${cityId}`
-  );
+
   try {
     const userInterests = await prisma.interest.findMany({
       where: { userId: userId },
@@ -89,7 +86,6 @@ router.get("/recommendations", async (req, res) => {
     });
 
     if (userInterests.length === 0 || cityInterests.length === 0) {
-      console.log("No interests found.");
       return res.status(404).send("No interests found.");
     }
 

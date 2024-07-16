@@ -10,10 +10,8 @@ const Home = () => {
   const { city } = useCity();
 
   useEffect(() => {
-    console.log("Effect running", { currentUser, city });
     if (currentUser && currentUser.uid && city && city.cityId) {
       const fetchRecommendations = async () => {
-        console.log("Making API call to fetch recommendations");
         try {
           const response = await fetch(
             `${
@@ -26,18 +24,12 @@ const Home = () => {
             throw new Error("Failed to fetch recommendations");
           }
           const data = await response.json();
-          console.log("Recommendations received:", data);
           setActivityTypes(data.slice(0, 3));
         } catch (error) {
           console.error("Error fetching recommendations:", error);
         }
       };
       fetchRecommendations();
-    } else {
-      console.log("User or City information is incomplete:", {
-        currentUser,
-        city,
-      });
     }
   }, [currentUser, city]);
 
