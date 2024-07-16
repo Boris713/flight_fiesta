@@ -75,21 +75,33 @@ router.post("/update-points", async (req, res) => {
 });
 
 router.get("/recommendations", async (req, res) => {
-  const { userId } = req.query;
-  console.log(`Fetching recommendations for userId: ${userId}`);
+  const { userId, cityId } = req.query;
+
   try {
-    const interests = await prisma.interest.findMany();
-    if (interests.length === 0) {
-      console.log("No interests found.");
+    const userInterests = await prisma.interest.findMany({
+      where: { userId: userId },
+    });
+    const cityInterests = await prisma.interest.findMany({
+      where: { cityId: parseInt(cityId) },
+    });
+
+    if (userInterests.length === 0 || cityInterests.length === 0) {
       return res.status(404).send("No interests found.");
     }
-    const data = { userId: userId, interests: interests };
+
+    const data = {
+      userId: userId,
+      userInterests: userInterests,
+      cityInterests: cityInterests,
+      cityId: cityId,
+    };
     const dataString = JSON.stringify(data);
     const scriptPath =
       "/Users/borishernandez/Desktop/Meta/Meta_Capstone/server/python/recommend.py";
     const pythonProcess = exec(`/usr/bin/python3 ${scriptPath}`);
     pythonProcess.stdin.write(dataString);
     pythonProcess.stdin.end();
+
     let pythonOutput = "";
     pythonProcess.stdout.on("data", (data) => {
       pythonOutput += data;

@@ -53,13 +53,13 @@ model Activity {
 
 model Interest {
   id              Int               @id @default(autoincrement())
-  userId          String
-  cityId          Int
+  userId          String?
+  cityId          Int?
   category        String
   score           Int              @default(0)
   //Relations
-  user            User             @relation(fields: [userId], references: [id])
-  city            City             @relation(fields: [cityId], references: [id])
+  user            User?             @relation(fields: [userId], references: [id])
+  city            City?             @relation(fields: [cityId], references: [id])
 }
 
 model City {

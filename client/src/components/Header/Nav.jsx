@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 const Nav = ({ children }) => {
   const { setCity } = useCity();
 
-  const changeCity = (latitude, longitude) => {
-    setCity([latitude, longitude]);
+  const changeCity = (latitude, longitude, cityId) => {
+    setCity({ coords: [latitude, longitude], cityId });
   };
   //Nav bar that will show in all places throughout website
   return (
@@ -23,17 +23,17 @@ const Nav = ({ children }) => {
           </button>
           <ul className="dropdown-menu">
             <li>
-              <a href="#" onClick={() => changeCity(21.1619, -86.8515)}>
+              <a href="#" onClick={() => changeCity(21.1619, -86.8515, 2)}>
                 Cancun
               </a>
             </li>
             <li>
-              <a href="#" onClick={() => changeCity(37.7749, -122.4194)}>
+              <a href="#" onClick={() => changeCity(37.7749, -122.4194, 1)}>
                 San Francisco
               </a>
             </li>
             <li>
-              <a href="#" onClick={() => changeCity(40.7128, -74.006)}>
+              <a href="#" onClick={() => changeCity(40.7128, -74.006, 3)}>
                 New York
               </a>
             </li>

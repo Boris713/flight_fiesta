@@ -17,7 +17,7 @@ function DateSelect({ onChange }) {
       setDepartureDate(newDepartureDate);
     }
     onChange(arrivalDate, departureDate);
-  }, [arrivalDate, departureDate, onChange]);
+  }, [arrivalDate, departureDate]);
 
   return (
     <div style={{ marginBottom: "10px" }}>
