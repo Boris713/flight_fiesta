@@ -10,8 +10,8 @@ const CardWrapper = ({ activity }) => {
   useEffect(() => {
     fetch(
       `${import.meta.env.VITE_REACT_APP_HOST}/itinerary/activities?latitude=${
-        city[0]
-      }&longitude=${city[1]}&kinds=${activity}`
+        city.coords[0]
+      }&longitude=${city.coords[1]}&kinds=${activity}`
     )
       .then((response) => response.json())
       .then((data) => setActivityInfo(data))
@@ -28,8 +28,8 @@ const CardWrapper = ({ activity }) => {
       <div className="row justify-content-center">
         {activityInfo &&
           activityInfo.features
-            .filter((feature) => feature.properties.name) // Filter out features without a name
-            .slice(0, 5) // Limit to first 5 features
+            .filter((feature) => feature.properties.name)
+            .slice(0, 5)
             .map((feature) => (
               <div className="col-md-2" key={feature.properties.xid}>
                 <Card activityInfo={feature} />
