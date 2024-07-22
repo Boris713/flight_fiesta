@@ -1,9 +1,9 @@
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
-import React, { useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
-export const AuthContext = React.createContext();
+export const AuthContext = createContext();
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -15,29 +15,41 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, initializeUser);
-    return unsubscribe;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log("User is logged in:", user); // Logging user info
+        setCurrentUser(user);
+        setUserLoggedIn(true);
+      } else {
+        console.log("No user is logged in"); // Logging when no user
+        setCurrentUser(null);
+        setUserLoggedIn(false);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  async function initializeUser(user) {
-    if (user) {
-      setCurrentUser({ ...user });
-      setUserLoggedIn(true);
-    } else {
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await signOut(auth);
       setCurrentUser(null);
       setUserLoggedIn(false);
+    } catch (error) {
+      console.error("Error logging out:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  };
 
-  const value = React.useMemo(
-    () => ({
-      currentUser,
-      userLoggedIn,
-      loading,
-    }),
-    [currentUser, userLoggedIn, loading]
-  );
+  const value = {
+    currentUser,
+    userLoggedIn,
+    loading,
+    logout,
+  };
 
   return (
     <AuthContext.Provider value={value}>
