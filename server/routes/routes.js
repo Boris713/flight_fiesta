@@ -4,28 +4,35 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const axios = require("axios").default;
 const { exec } = require("child_process");
-const { bodyParser } = require("body-parser");
-const { error } = require("console");
-const { stdout, stderr } = require("process");
-
+const {
+  fetchActivities,
+  getDetailedActivity,
+} = require("../utils/ItineraryUtils");
 router.get("/activities", async (req, res) => {
   const { latitude, longitude, kinds } = req.query;
-  const baseUrl = "https://api.opentripmap.com/0.1/en/places/radius";
-  const params = {
-    radius: 15000,
-    lon: longitude,
-    lat: latitude,
-    kinds: kinds,
-    apikey: process.env.MAP_API_KEY,
-  };
-  const urlWithParams = `${baseUrl}?${new URLSearchParams(params).toString()}`;
+
   try {
-    const response = await axios.get(baseUrl, { params });
-    res.json(response.data);
+    const data = await fetchActivities(latitude, longitude, kinds);
+    res.json(data);
   } catch (error) {
     console.error("Error status:", error.response?.status);
     console.error("Error data:", error.response?.data);
     res.status(500).send("Failed to fetch data");
+  }
+});
+
+router.get("/activity-detail/:xid", async (req, res) => {
+  const { xid } = req.params;
+
+  try {
+    const activityDetail = await getDetailedActivity(xid);
+    res.status(200).json(activityDetail);
+  } catch (error) {
+    console.error(
+      `Error in /activity-detail/:xid for xid ${xid}:`,
+      error.message
+    );
+    res.status(500).json({ error: "Error fetching activity details" });
   }
 });
 
