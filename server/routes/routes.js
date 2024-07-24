@@ -52,25 +52,34 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/update-points", async (req, res) => {
-  const { userId, category, score } = req.body;
+  const interests = req.body;
+
   try {
-    const existingActivity = await prisma.Interest.findUnique({
-      where: { userId_Activity: { userId, category } },
+    await Promise.all(
+      interests.map(async ({ userId, category, score }) => {
+        const existingInterest = await prisma.interest.findFirst({
+          where: {
+            userId,
+            category,
+          },
     });
 
-    if (existingActivity) {
-      await prisma.Interest.update({
-        where: { userId_Activity: { userId, category } },
-        data: { score: existingActivity.score + score },
+        if (existingInterest) {
+          await prisma.interest.update({
+            where: { id: existingInterest.id },
+            data: { score: existingInterest.score + score },
       });
     } else {
-      await prisma.Interest.create({
+          await prisma.interest.create({
         data: { userId, category, score },
       });
     }
-    res.status(200).send("Activity logged");
+      })
+    );
+    res.status(200).send("Interests updated");
   } catch (error) {
-    res.status(500).send("Error");
+    console.error(error);
+    res.status(500).send("Error updating interests");
   }
 });
 
