@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useCallback } from "react";
 import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
 import CardWrapper from "../../components/ui/CardWrapper/CardWrapper";
 import { AuthContext } from "../../contexts/authContexts/authContexts";
@@ -9,38 +9,37 @@ const Home = () => {
   const { currentUser } = useContext(AuthContext);
   const { city } = useCity();
 
+  const fetchRecommendations = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_REACT_APP_HOST
+        }/itinerary/recommendations?userId=${currentUser.uid}&cityId=${
+          city.cityId
+        }`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch recommendations");
+      }
+      const data = await response.json();
+      setActivityTypes(data.slice(0, 3));
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+    }
+  }, [city]);
+
   useEffect(() => {
     if (currentUser && currentUser.uid && city && city.cityId) {
-      const fetchRecommendations = async () => {
-        try {
-          const response = await fetch(
-            `${
-              import.meta.env.VITE_REACT_APP_HOST
-            }/itinerary/recommendations?userId=${currentUser.uid}&cityId=${
-              city.cityId
-            }`
-          );
-          if (!response.ok) {
-            throw new Error("Failed to fetch recommendations");
-          }
-          const data = await response.json();
-          setActivityTypes(data.slice(0, 3));
-        } catch (error) {
-          console.error("Error fetching recommendations:", error);
-        }
-      };
       fetchRecommendations();
     }
-  }, [currentUser, city]);
+  }, []);
 
   return (
-    <>
-      <div className="container mt-5">
-        {activityTypes.map((activity, index) => (
-          <CardWrapper key={index} activity={activity} />
-        ))}
-      </div>
-    </>
+    <div className="container mt-5">
+      {activityTypes.map((activity, index) => (
+        <CardWrapper key={index} activity={activity} />
+      ))}
+    </div>
   );
 };
 
