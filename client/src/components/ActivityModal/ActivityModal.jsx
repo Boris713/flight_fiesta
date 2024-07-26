@@ -10,7 +10,6 @@ const ActivityModal = ({ show, onClose, xid }) => {
     if (show && xid) {
       const fetchActivityDetails = async () => {
         try {
-          console.log("Fetching activity details for xid:", xid);
           const response = await fetch(
             `${
               import.meta.env.VITE_REACT_APP_HOST
