@@ -144,4 +144,139 @@ router.get("/recommendations", async (req, res) => {
   }
 });
 
+router.get("/generate", async (req, res) => {
+  const { startDate, endDate, interests, type, latitude, longitude, cityId } =
+    req.query;
+
+  try {
+    const parsedInterests = interests ? JSON.parse(interests) : [];
+
+    let popularActivitiesResponse = await popular(latitude, longitude, cityId);
+
+    let popularActivities = popularActivitiesResponse.features;
+
+    let start = new Date(startDate);
+    let end = new Date(endDate);
+    let dayCount = Math.ceil((end - start) / (1000 * 3600 * 24)) + 1;
+
+    let detailedPopularActivities = [];
+
+    // Fetch details for each popular activity, but only up to the number of days
+    for (let i = 0; i < dayCount && i < popularActivities.length; i++) {
+      const activity = popularActivities[i];
+      const details = await getDetailedActivity(activity.properties.xid);
+      detailedPopularActivities.push(details);
+    }
+
+    if (detailedPopularActivities.length < dayCount * 6) {
+      popularActivitiesResponse = await popular(
+        latitude,
+        longitude,
+        cityId,
+        30000
+      );
+
+      popularActivities = popularActivitiesResponse.features;
+
+      detailedPopularActivities = [];
+      for (let i = 0; i < dayCount && i < popularActivities.length; i++) {
+        const activity = popularActivities[i];
+        const details = await getDetailedActivity(activity.properties.xid);
+        detailedPopularActivities.push(details);
+      }
+    }
+
+    let itinerary1 = [];
+    let itinerary2 = [];
+    let usedActivities = new Set();
+
+    while (dayCount > 0 && detailedPopularActivities.length > 0) {
+      const format = type; // Use selected itinerary type
+      const centralActivity = detailedPopularActivities.shift(); // Get a unique central activity for each day
+
+      if (usedActivities.has(centralActivity.xid)) {
+        continue; // Skip if the activity has already been used
+      }
+      usedActivities.add(centralActivity.xid);
+
+      // Fetch additional activities based on the central activity's location
+      const additionalPopularActivitiesResponse = await fetchActivities(
+        centralActivity.point.lat,
+        centralActivity.point.lon,
+        parsedInterests.join(","),
+        30000
+      );
+
+      const additionalPopularActivities =
+        additionalPopularActivitiesResponse.features || [];
+
+      // Fetch recommended activities
+      const additionalRecommendedActivitiesResponse = await fetchActivities(
+        centralActivity.point.lat,
+        centralActivity.point.lon,
+        parsedInterests.join(","),
+        30000
+      );
+
+      const additionalRecommendedActivities =
+        additionalRecommendedActivitiesResponse.features || [];
+
+      // Filter out used activities from additional activities
+      const filteredPopularActivities = additionalPopularActivities.filter(
+        (activity) => !usedActivities.has(activity.properties.xid)
+      );
+      const filteredRecommendedActivities =
+        additionalRecommendedActivities.filter(
+          (activity) => !usedActivities.has(activity.properties.xid)
+        );
+
+      // Get a random template from the database
+      const templates = await prisma.template.findMany({
+        where: { type: format },
+        orderBy: { id: "desc" },
+      });
+
+      if (templates.length === 0) {
+        throw new Error("No templates found for the specified format");
+      }
+
+      const template = templates[Math.floor(Math.random() * templates.length)];
+      const times = template.times;
+
+      const dayActivities1 = fillDayActivities(
+        centralActivity,
+        filteredPopularActivities,
+        filteredRecommendedActivities,
+        format,
+        0.8,
+        0.2,
+        times,
+        usedActivities // Pass the used activities set to update it within fillDayActivities
+      );
+
+      const dayActivities2 = fillDayActivities(
+        centralActivity,
+        filteredPopularActivities,
+        filteredRecommendedActivities,
+        format,
+        0.2, // 20% popular, 80% recommendations
+        0.8,
+        times,
+        usedActivities // Pass the used activities set to update it within fillDayActivities
+      );
+
+      itinerary1.push(dayActivities1);
+      itinerary2.push(dayActivities2);
+
+      start.setDate(start.getDate() + 1);
+      dayCount--;
+    }
+
+    res.json({ itinerary1, itinerary2 });
+  } catch (error) {
+    console.error("Failed to generate itinerary:", error.message);
+    res.status(500).send(`Error generating itinerary: ${error.message}`);
+  }
+});
+
 module.exports = router;
