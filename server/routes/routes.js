@@ -103,29 +103,51 @@ router.post("/update-points", async (req, res) => {
 
   try {
     await Promise.all(
-      interests.map(async ({ userId, category, score }) => {
-        const existingInterest = await prisma.interest.findFirst({
-          where: {
-            userId,
-            category,
-          },
-        });
+      interests.map(async ({ userId, cityId, category, score }) => {
+        if (userId) {
+          const existingUserInterest = await prisma.interest.findFirst({
+            where: {
+              userId,
+              category,
+            },
+          });
 
-        if (existingInterest) {
-          await prisma.interest.update({
-            where: { id: existingInterest.id },
-            data: { score: existingInterest.score + score },
+          if (existingUserInterest) {
+            await prisma.interest.update({
+              where: { id: existingUserInterest.id },
+              data: { score: existingUserInterest.score + score },
+            });
+          } else {
+            await prisma.interest.create({
+              data: { userId, category, score },
+            });
+          }
+        }
+
+        if (cityId) {
+          const existingCityInterest = await prisma.interest.findFirst({
+            where: {
+              cityId,
+              category,
+            },
           });
-        } else {
-          await prisma.interest.create({
-            data: { userId, category, score },
-          });
+
+          if (existingCityInterest) {
+            await prisma.interest.update({
+              where: { id: existingCityInterest.id },
+              data: { score: existingCityInterest.score + score },
+            });
+          } else {
+            await prisma.interest.create({
+              data: { cityId, category, score },
+            });
+          }
         }
       })
     );
-    res.status(200).send("Interests updated");
+    res.status(200).send({ message: "Interests updated successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Error in /update-points:", error);
     res.status(500).send("Error updating interests");
   }
 });

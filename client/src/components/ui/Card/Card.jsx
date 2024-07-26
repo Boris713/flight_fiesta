@@ -3,15 +3,19 @@ import "../../../CardWrapper.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Tooltip } from "bootstrap";
 import ActivityModal from "../../ActivityModal/ActivityModal";
+import { useAuth } from "../../../contexts/authContexts/authContexts"; // Adjust the path as necessary
+import { useCity } from "../../../contexts/cityContext/cityContext"; // Import useCity hook
 
 const Card = ({ activityInfo }) => {
-  const { name, kinds, xid } = activityInfo.properties; // Ensure xid is being destructured correctly
+  const { name, kinds, xid } = activityInfo.properties;
   const imageUrl = activityInfo.imageUrl;
   const learnMoreUrl = `https://www.google.com/search?q=${encodeURIComponent(
     name
   )}`;
 
   const [showModal, setShowModal] = useState(false);
+  const { currentUser } = useAuth();
+  const { city } = useCity();
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll(
@@ -22,8 +26,14 @@ const Card = ({ activityInfo }) => {
     );
   }, []);
 
-  const handleCardClick = () => {
+  const handleCardClick = async () => {
     setShowModal(true);
+    await updateInterests("cardClick");
+  };
+
+  const handleLearnMoreClick = async (e) => {
+    e.stopPropagation();
+    await updateInterests("learnMoreClick");
   };
 
   const handleCloseModal = () => {
@@ -36,6 +46,45 @@ const Card = ({ activityInfo }) => {
       .split(",")
       .map((kind) => `#${kind.replace(/_/g, " ")}`)
       .join(" ");
+  };
+
+  const updateInterests = async (action) => {
+    if (!currentUser || !city) return;
+
+    const interestsData = [
+      {
+        userId: currentUser.uid,
+        category: kinds,
+        score: action === "cardClick" ? 2 : 4,
+      },
+      {
+        cityId: city.cityId,
+        category: kinds,
+        score: action === "cardClick" ? 2 : 4,
+      },
+    ];
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_REACT_APP_HOST}/itinerary/update-points`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(interestsData),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Response not OK:", result);
+        throw new Error("Failed to update interests");
+      }
+    } catch (error) {
+      console.error("Error updating interests:", error);
+    }
   };
 
   return (
@@ -68,7 +117,7 @@ const Card = ({ activityInfo }) => {
             className="btn btn-primary card-link"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleLearnMoreClick}
           >
             Learn More
           </a>
