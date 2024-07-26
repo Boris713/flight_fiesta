@@ -1,36 +1,33 @@
+import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../../../CardWrapper.css";
 import { useCity } from "../../../contexts/cityContext/cityContext";
 import Card from "../Card/Card";
-import { useEffect, useState } from "react";
 
 const CardWrapper = ({ activity }) => {
   const { city } = useCity();
   const [activityInfo, setActivityInfo] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
 
-  const fetchDetailedActivity = async (xid) => {
+  const defaultImage = "path/to/default-image.jpg";
+
+  const fetchImage = async (query) => {
     try {
       const response = await fetch(
         `${
           import.meta.env.VITE_REACT_APP_HOST
-        }/itinerary/activity-detail/${xid}`
+        }/itinerary/image-search?query=${query}`
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch detailed activity");
+        throw new Error("Failed to fetch image");
       }
       const data = await response.json();
-      if (data.preview?.source && data.wikipedia) {
-        return data;
-      }
-      return null;
+      return data;
     } catch (error) {
-      console.error(`Error fetching detailed activity for xid ${xid}:`, error);
-      return null;
+      console.error(`Error fetching image for query ${query}:`, error);
+      return { imageUrl: defaultImage, name: query }; // Use default image on error
     }
   };
-
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const fetchActivities = async () => {
     if (isFetching) return;
@@ -52,20 +49,16 @@ const CardWrapper = ({ activity }) => {
       ) {
         const feature = data.features[i];
         if (feature.properties.name) {
-          const detailedActivity = await fetchDetailedActivity(
-            feature.properties.xid
-          );
-          if (detailedActivity) {
-            validActivities.push(detailedActivity);
-            if (validActivities.length >= 5) break;
-          }
-          if (i % 5 === 0) {
-            await delay(200);
-          }
+          const imageResult = await fetchImage(feature.properties.name);
+          validActivities.push({
+            ...feature,
+            imageUrl: imageResult.imageUrl,
+            name: imageResult.name,
+          });
+          if (validActivities.length >= 5) break;
         }
       }
 
-      console.log("Detailed activities fetched:", validActivities);
       setActivityInfo(validActivities);
     } catch (error) {
       console.error("Error fetching activities:", error);
@@ -79,7 +72,7 @@ const CardWrapper = ({ activity }) => {
   }, [activity, city]);
 
   return (
-    <div className="container mt-5 mb-5 custom-container bg-primary">
+    <div className="container mt-5 mb-5 custom-container bg-primary card-wrapper">
       <div>
         <h1 className="text-center text-white">
           Recommended {activity} nearby
@@ -88,7 +81,10 @@ const CardWrapper = ({ activity }) => {
       <div className="row justify-content-center">
         {activityInfo && activityInfo.length > 0 ? (
           activityInfo.map((feature) => (
-            <div className="col-md-2" key={feature.xid}>
+            <div
+              className="col-lg-2 col-md-3 col-sm-4 col-6 d-flex"
+              key={feature.xid}
+            >
               <Card activityInfo={feature} />
             </div>
           ))

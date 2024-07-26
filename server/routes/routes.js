@@ -5,9 +5,14 @@ const prisma = new PrismaClient();
 const axios = require("axios").default;
 const { exec } = require("child_process");
 const {
+  fillDayActivities,
   fetchActivities,
   getDetailedActivity,
+  popular,
 } = require("../utils/ItineraryUtils");
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
+
 router.get("/activities", async (req, res) => {
   const { latitude, longitude, kinds } = req.query;
 
@@ -33,6 +38,41 @@ router.get("/activity-detail/:xid", async (req, res) => {
       error.message
     );
     res.status(500).json({ error: "Error fetching activity details" });
+  }
+});
+
+router.get("/image-search", async (req, res) => {
+  const { query } = req.query;
+
+  if (!query) {
+    return res.status(400).json({ error: "Query parameter is required" });
+  }
+
+  try {
+    const response = await axios.get(
+      "https://www.googleapis.com/customsearch/v1",
+      {
+        params: {
+          key: GOOGLE_API_KEY,
+          cx: GOOGLE_CSE_ID,
+          q: query,
+          searchType: "image",
+          num: 1,
+        },
+      }
+    );
+
+    const items = response.data.items;
+
+    if (items && items.length > 0) {
+      const imageUrl = items[0].link;
+      res.json({ imageUrl, name: query });
+    } else {
+      res.status(404).json({ error: "No images found" });
+    }
+  } catch (error) {
+    console.error("Error fetching image:", error.message);
+    res.status(500).json({ error: "Error fetching image" });
   }
 });
 
@@ -69,18 +109,18 @@ router.post("/update-points", async (req, res) => {
             userId,
             category,
           },
-    });
+        });
 
         if (existingInterest) {
           await prisma.interest.update({
             where: { id: existingInterest.id },
             data: { score: existingInterest.score + score },
-      });
-    } else {
+          });
+        } else {
           await prisma.interest.create({
-        data: { userId, category, score },
-      });
-    }
+            data: { userId, category, score },
+          });
+        }
       })
     );
     res.status(200).send("Interests updated");
@@ -141,6 +181,40 @@ router.get("/recommendations", async (req, res) => {
   } catch (error) {
     console.error("Failed to fetch interests:", error);
     res.status(500).send("Failed to fetch interests");
+  }
+});
+
+router.post("/save", async (req, res) => {
+  const { userId, cityId, title, description, startDate, endDate, activities } =
+    req.body;
+
+  try {
+    const newItinerary = await prisma.itinerary.create({
+      data: {
+        userId,
+        cityId,
+        title,
+        description,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        activities: {
+          create: activities.map((activity) => ({
+            title: activity.title,
+            category: activity.category,
+            startTime: new Date(activity.startTime),
+            endTime: new Date(activity.endTime),
+            xid: activity.xid,
+            image: activity.image,
+            wikiLink: activity.wikiLink,
+          })),
+        },
+      },
+    });
+
+    res.status(200).json(newItinerary);
+  } catch (error) {
+    console.error("Failed to save itinerary:", error);
+    res.status(500).send(`Error saving itinerary: ${error.message}`);
   }
 });
 

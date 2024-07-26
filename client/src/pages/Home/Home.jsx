@@ -35,7 +35,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="container mt-5">
+    <div className="container-fluid mt-5">
       {activityTypes.map((activity, index) => (
         <CardWrapper key={index} activity={activity} />
       ))}
