@@ -5,10 +5,12 @@ import DateSelect from "../../components/DateSelect/DateSelect";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { useCity } from "../../contexts/cityContext/cityContext";
+import { useAuth } from "../../../contexts/authContexts/authContexts";
 import ItineraryModal from "../../components/ui/ItineraryModal/ItineraryModal";
 import ProgressBar from "../../components/ProgressBar/ProgressBar";
 
 const ItineraryCreator = () => {
+  const { currentUser } = useAuth();
   const { city } = useCity();
   const [dateRange, setDateRange] = useState({
     start: new Date(),
@@ -203,7 +205,7 @@ const ItineraryCreator = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userId: "user_id", // Replace this with the actual user ID
+            userId: currentUser,
             cityId: city.cityId,
             title,
             description,
