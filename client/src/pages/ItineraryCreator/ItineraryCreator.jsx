@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import HalfPageLayout from "../../components/ui/HalfPageLayout/HalfPageLayout";
 import EditableText from "../../components/EditableText/EditableText";
 import DateSelect from "../../components/DateSelect/DateSelect";
@@ -6,6 +6,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { useCity } from "../../contexts/cityContext/cityContext";
 import ItineraryModal from "../../components/ui/ItineraryModal/ItineraryModal";
+import ProgressBar from "../../components/ProgressBar/ProgressBar";
 
 const ItineraryCreator = () => {
   const { city } = useCity();
@@ -16,6 +17,7 @@ const ItineraryCreator = () => {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0); // Progress state
   const [eventList, setEventList] = useState([]);
+  const [clicked, setClicked] = useState(false);
   const [selectedInterests, setSelectedInterests] = useState([
     "adult",
     "amusements",
@@ -180,58 +182,115 @@ const ItineraryCreator = () => {
     setShowModal(false);
   };
 
+  const saveItinerary = async () => {
+    if (!itineraryData) {
+      console.error("No itinerary data to save");
+      return;
+    }
+    setLoading(true);
+    setProgress(0);
+    simulateProgress(4000); // Simulate progress over 4 seconds
+
+    try {
+      const title = titleRef.current.getText(); // Get the title from the EditableText component
+      const description = descriptionRef.current.getText(); // Get the description from the EditableText component
+
+      const response = await fetch(
+        `${import.meta.env.VITE_REACT_APP_HOST}/itinerary/save`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: "user_id", // Replace this with the actual user ID
+            cityId: city.cityId,
+            title,
+            description,
+            startDate: dateRange.start,
+            endDate: dateRange.end,
+            activities: itineraryData
+              .map((day) =>
+                day.map((activity) => ({
+                  title: activity.activity.properties.name,
+                  category: activity.activity.properties.kinds,
+                  startTime: new Date(activity.time),
+                  endTime: new Date(activity.time),
+                  xid: activity.activity.properties.xid,
+                  image: activity.activity.properties.image,
+                  wikiLink: activity.activity.properties.wikidata,
+                }))
+              )
+              .flat(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to save itinerary");
+      }
+    } catch (error) {
+      console.error("Failed to save itinerary:", error);
+      console.error("Error Details:", error.message);
+    } finally {
+      setLoading(false);
+      setProgress(100);
+      setShowSaveButton(false); // Hide save button after saving
+    }
+  };
+
   return (
     <>
       {loading ? (
         <ProgressBar progress={progress} /> // Display the ProgressBar with progress state
       ) : (
-    <HalfPageLayout
-      leftChild={
-        <div>
-          <div className="text-center mb-3">
-            <EditableText
-              initialText="Title"
-              placeholder="Enter title here"
-              className="w-100"
+        <HalfPageLayout
+          leftChild={
+            <div>
+              <div className="text-center mb-3">
+                <EditableText
+                  initialText="Title"
+                  placeholder="Enter title here"
+                  className="w-100"
                   ref={titleRef}
-            />
-          </div>
-          <div className="text-center mb-3">
-            <EditableText
-              initialText="Description"
-              placeholder="Enter description here"
-              className="w-100"
+                />
+              </div>
+              <div className="text-center mb-3">
+                <EditableText
+                  initialText="Description"
+                  placeholder="Enter description here"
+                  className="w-100"
                   ref={descriptionRef}
-            />
-          </div>
-          <div className="text-center mb-3">
-            <DateSelect
-              onChange={(start, end) => setDateRange({ start, end })}
-            />
-          </div>
-          <div className="text-center mb-3">
-            <h3>Include:</h3>
-            <form className="d-flex flex-wrap justify-content-center">
-              {interests.map((interest, index) => (
-                <div key={index} className="form-check mx-2">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
+                />
+              </div>
+              <div className="text-center mb-3">
+                <DateSelect
+                  onChange={(start, end) => setDateRange({ start, end })}
+                />
+              </div>
+              <div className="text-center mb-3">
+                <h3>Include:</h3>
+                <form className="d-flex flex-wrap justify-content-center">
+                  {interests.map((interest, index) => (
+                    <div key={index} className="form-check mx-2">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
                         value={interest.value}
-                    id={`interest-${index}`}
+                        id={`interest-${index}`}
                         onChange={() => handleInterestChange(interest.value)}
                         checked={selectedInterests.includes(interest.value)}
-                  />
-                  <label
-                    className="form-check-label"
-                    htmlFor={`interest-${index}`}
-                  >
+                      />
+                      <label
+                        className="form-check-label"
+                        htmlFor={`interest-${index}`}
+                      >
                         {interest.display}
-                  </label>
-                </div>
-              ))}
-            </form>
-          </div>
+                      </label>
+                    </div>
+                  ))}
+                </form>
+              </div>
 
               <div className="text-center mb-3">
                 <label>Itinerary Type:</label>
@@ -244,40 +303,47 @@ const ItineraryCreator = () => {
                   <option value="passive">Passive</option>
                 </select>
               </div>
-          <div className="text-center">
+              <div className="text-center">
                 <button className="btn btn-primary" onClick={generateItinerary}>
                   Generate Itinerary
                 </button>
-          </div>
-        </div>
-      }
-      rightChild={
-        <div style={{ height: "500px" }}>
-          <FullCalendar
-            key={`${dateRange.start.toISOString()}-${dateRange.end.toISOString()}`}
-            plugins={[dayGridPlugin]}
-            initialView="dayGridWeek"
-            initialDate={dateRange.start}
-            headerToolbar={{
-              left: "prev,next",
-              center: "title",
-              right: "dayGridDay,dayGridWeek",
-            }}
+              </div>
+              {showSaveButton && (
+                <div className="text-center mt-3">
+                  <button className="btn btn-success" onClick={saveItinerary}>
+                    Save Itinerary
+                  </button>
+                </div>
+              )}
+            </div>
+          }
+          rightChild={
+            <div style={{ height: "500px" }}>
+              <FullCalendar
+                key={`${dateRange.start.toISOString()}-${dateRange.end.toISOString()}`}
+                plugins={[dayGridPlugin]}
+                initialView="dayGridWeek"
+                initialDate={dateRange.start}
+                headerToolbar={{
+                  left: "prev,next",
+                  center: "title",
+                  right: "dayGridDay,dayGridWeek",
+                }}
                 events={eventList}
-            eventTimeFormat={{
-              hour: "2-digit",
-              minute: "2-digit",
-              meridiem: "short",
-              hour12: true,
-            }}
-            validRange={{
-              start: dateRange.start,
-              end: dateRange.end,
-            }}
-          />
-        </div>
-      }
-    />
+                eventTimeFormat={{
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  meridiem: "short",
+                  hour12: true,
+                }}
+                validRange={{
+                  start: dateRange.start,
+                  end: dateRange.end,
+                }}
+              />
+            </div>
+          }
+        />
       )}
       <ItineraryModal
         showModal={showModal}
