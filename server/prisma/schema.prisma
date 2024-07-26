@@ -26,9 +26,9 @@ model User {
 model Itinerary {
   id              Int             @id @default(autoincrement())
   userId          String
-  cityId Int
-  location        String
+  cityId          Int
   title           String
+  description     String
   startDate       DateTime
   endDate         DateTime
   //Relations
@@ -39,7 +39,6 @@ model Itinerary {
 
 model Activity {
   id          Int      @id @default(autoincrement())
-  location    String
   title       String
   category    String
   startTime   DateTime

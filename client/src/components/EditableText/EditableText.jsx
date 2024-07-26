@@ -1,13 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { FaPencilAlt } from "react-icons/fa";
 
-function EditableText({
-  initialText = "",
-  placeholder = "Enter text",
-  className,
-}) {
+const EditableText = forwardRef(({ initialText = "", placeholder = "Enter text", className }, ref) => {
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(initialText);
+
+  useImperativeHandle(ref, () => ({
+    getText: () => text,
+  }));
 
   const handleTextChange = (event) => {
     setText(event.target.value);
@@ -18,9 +18,7 @@ function EditableText({
   };
 
   return (
-    <div
-      className={`${className} d-flex align-items-center justify-content-center`}
-    >
+    <div className={`${className} d-flex align-items-center justify-content-center`}>
       {isEditing ? (
         <input
           type="text"
@@ -57,5 +55,6 @@ function EditableText({
       )}
     </div>
   );
-}
+});
+
 export default EditableText;
