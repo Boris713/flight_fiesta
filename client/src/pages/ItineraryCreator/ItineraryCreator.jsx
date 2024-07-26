@@ -5,7 +5,7 @@ import DateSelect from "../../components/DateSelect/DateSelect";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { useCity } from "../../contexts/cityContext/cityContext";
-import { useAuth } from "../../../contexts/authContexts/authContexts";
+import { useAuth } from "../../contexts/authContexts/authContexts";
 import ItineraryModal from "../../components/ui/ItineraryModal/ItineraryModal";
 import ProgressBar from "../../components/ProgressBar/ProgressBar";
 
