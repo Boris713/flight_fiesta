@@ -9,6 +9,7 @@ const {
   fetchActivities,
   getDetailedActivity,
   popular,
+  updatePoints,
 } = require("../utils/ItineraryUtils");
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
@@ -76,6 +77,41 @@ router.get("/image-search", async (req, res) => {
   }
 });
 
+router.post("/save-activities", async (req, res) => {
+  const activities = req.body;
+
+  try {
+    await Promise.all(
+      activities.map(async (activity) => {
+        const existingActivity = await prisma.activity.findUnique({
+          where: { xid: activity.properties.xid }, // Ensure xid is correctly accessed
+        });
+
+        if (!existingActivity) {
+          await prisma.activity.create({
+            data: {
+              title: activity.properties.name, // Ensure name is correctly accessed
+              category: activity.properties.kinds, // Ensure kinds is correctly accessed
+              startTime: new Date(),
+              endTime: new Date(),
+              xid: activity.properties.xid,
+              image: activity.imageUrl, // Ensure imageUrl is passed correctly
+              wikiLink: activity.properties.wikidata
+                ? `https://www.wikidata.org/wiki/${activity.properties.wikidata}`
+                : null, // Ensure wikidata is correctly accessed
+            },
+          });
+        }
+      })
+    );
+
+    res.status(200).send("Activities saved successfully");
+  } catch (error) {
+    console.error("Error saving activities:", error);
+    res.status(500).send("Error saving activities");
+  }
+});
+
 router.post("/register", async (req, res) => {
   const { id, email, name } = req.body;
 
@@ -98,57 +134,119 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.post("/update-like", async (req, res) => {
+  const { userId, xid, liked } = req.body;
+
+  try {
+    const existingActivity = await prisma.activity.findUnique({
+      where: { xid },
+      include: { users: true },
+    });
+
+    if (existingActivity) {
+      await prisma.activity.update({
+        where: { xid },
+        data: { liked },
+      });
+
+      if (liked) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            likedActivities: {
+              connect: { xid: existingActivity.xid },
+            },
+          },
+        });
+      } else {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            likedActivities: {
+              disconnect: { xid: existingActivity.xid },
+            },
+          },
+        });
+      }
+
+      const scoreChange = liked ? 4 : -4;
+      await updatePoints(userId, existingActivity.category, scoreChange);
+      await updatePoints(
+        existingActivity.cityId,
+        existingActivity.category,
+        scoreChange,
+        true
+      );
+
+      res.status(200).json({ message: "Like status updated successfully" });
+    } else {
+      res.status(404).json({ error: "Activity not found" });
+    }
+  } catch (error) {
+    console.error("Error updating like status:", error);
+    res.status(500).json({ error: "Error updating like status" });
+  }
+});
+
+router.post("/get-like-status", async (req, res) => {
+  const { userId, xid } = req.body;
+
+  try {
+    const activity = await prisma.activity.findUnique({
+      where: { xid: xid },
+    });
+
+    if (!activity) {
+      return res.status(404).send("Activity not found");
+    }
+
+    res.status(200).json({ liked: activity.liked });
+  } catch (error) {
+    console.error("Error fetching like status:", error);
+    res.status(500).send("Error fetching like status");
+  }
+});
+
 router.post("/update-points", async (req, res) => {
   const interests = req.body;
 
   try {
     await Promise.all(
-      interests.map(async ({ userId, cityId, category, score }) => {
-        if (userId) {
-          const existingUserInterest = await prisma.interest.findFirst({
-            where: {
-              userId,
-              category,
-            },
-          });
-
-          if (existingUserInterest) {
-            await prisma.interest.update({
-              where: { id: existingUserInterest.id },
-              data: { score: existingUserInterest.score + score },
-            });
-          } else {
-            await prisma.interest.create({
-              data: { userId, category, score },
-            });
-          }
-        }
-
-        if (cityId) {
-          const existingCityInterest = await prisma.interest.findFirst({
-            where: {
-              cityId,
-              category,
-            },
-          });
-
-          if (existingCityInterest) {
-            await prisma.interest.update({
-              where: { id: existingCityInterest.id },
-              data: { score: existingCityInterest.score + score },
-            });
-          } else {
-            await prisma.interest.create({
-              data: { cityId, category, score },
-            });
-          }
-        }
+      interests.map(async (interest) => {
+        const isCity = interest.cityId !== undefined;
+        const entityId = isCity ? interest.cityId : interest.userId;
+        await updatePoints(entityId, interest.category, interest.score, isCity);
       })
     );
-    res.status(200).send({ message: "Interests updated successfully" });
+
+    res.status(200).json({ message: "Points updated successfully" });
   } catch (error) {
-    console.error("Error in /update-points:", error);
-    res.status(500).send("Error updating interests");
+    console.error("Error updating points:", error);
+    res.status(500).json({ error: "Error updating points" });
+  }
+});
+router.get("/liked-activities", async (req, res) => {
+  const { userId } = req.query;
+
+  try {
+    const likedActivities = await prisma.activity.findMany({
+      where: {
+        users: {
+          some: {
+            id: userId,
+          },
+        },
+        liked: true,
+      },
+      include: {
+        users: true,
+      },
+    });
+
+    res.status(200).json(likedActivities);
+  } catch (error) {
+    console.error("Error fetching liked activities:", error);
+    res.status(500).send("Error fetching liked activities");
   }
 });
 

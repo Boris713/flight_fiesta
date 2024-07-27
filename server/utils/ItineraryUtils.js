@@ -121,10 +121,39 @@ const popular = async (latitude, longitude, cityId, radius = 20000) => {
     throw error;
   }
 };
+const updatePoints = async (
+  entityId,
+  category,
+  scoreChange,
+  isCity = false
+) => {
+  const whereClause = isCity
+    ? { cityId: entityId, category }
+    : { userId: entityId, category };
+  const existingInterest = await prisma.interest.findFirst({
+    where: whereClause,
+  });
+
+  if (existingInterest) {
+    await prisma.interest.update({
+      where: { id: existingInterest.id },
+      data: { score: existingInterest.score + scoreChange },
+    });
+  } else {
+    await prisma.interest.create({
+      data: {
+        [isCity ? "cityId" : "userId"]: entityId,
+        category,
+        score: scoreChange,
+      },
+    });
+  }
+};
 
 module.exports = {
   fillDayActivities,
   fetchActivities,
   getDetailedActivity,
   popular,
+  updatePoints,
 };

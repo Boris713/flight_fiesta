@@ -53,7 +53,7 @@ const CardWrapper = ({ activity }) => {
           validActivities.push({
             ...feature,
             imageUrl: imageResult.imageUrl,
-            name: imageResult.name,
+            name: feature.properties.name.replace(/_/g, " "), // Remove underscores from name
           });
           if (validActivities.length >= 5) break;
         }

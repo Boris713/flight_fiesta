@@ -26,16 +26,17 @@ const Home = () => {
     } catch (error) {
       console.error("Error fetching recommendations:", error);
     }
-  }, [city]);
+  }, [city, currentUser]);
 
   useEffect(() => {
     if (currentUser && currentUser.uid && city && city.cityId) {
       fetchRecommendations();
     }
-  }, []);
+  }, [currentUser, city, fetchRecommendations]);
 
   return (
-    <div className="container-fluid mt-5">
+    <div className="container-fluid mt-3">
+      <h1 className="text-center display-2">{city.name.replace(/_/g, " ")}</h1>
       {activityTypes.map((activity, index) => (
         <CardWrapper key={index} activity={activity} />
       ))}
