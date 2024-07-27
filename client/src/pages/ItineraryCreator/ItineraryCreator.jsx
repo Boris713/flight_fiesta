@@ -36,7 +36,7 @@ const ItineraryCreator = () => {
   const [itineraryType, setItineraryType] = useState("active");
   const [itineraryOptions, setItineraryOptions] = useState({});
   const [showModal, setShowModal] = useState(false);
-  const [showSaveButton, setShowSaveButton] = useState(true); // State for save button
+  const [showSaveButton, setShowSaveButton] = useState(false); // Initial state for save button is false
   const [itineraryData, setItineraryData] = useState(null); // State for itinerary data
 
   const titleRef = useRef();
@@ -129,6 +129,7 @@ const ItineraryCreator = () => {
       setProgress(100);
     }
   };
+
   const fillCalendar = (data) => {
     if (!data || !Array.isArray(data.itinerary1)) {
       console.error("Invalid itinerary data:", data);
@@ -136,34 +137,36 @@ const ItineraryCreator = () => {
     }
 
     const { itinerary1 } = data;
-    const events = itinerary1
-      .map((day, index) => {
-        if (!Array.isArray(day)) {
-          console.error("Expected day to be an array:", day);
-          return [];
+    const events = itinerary1.flatMap((day, index) => {
+      if (!Array.isArray(day)) {
+        console.error("Expected day to be an array:", day);
+        return [];
+      }
+
+      return day.map((entry) => {
+        const eventDate = new Date(dateRange.start);
+        eventDate.setDate(eventDate.getDate() + index);
+        if (entry.time) {
+          const [hours, minutes] = entry.time.split(":");
+          eventDate.setHours(hours);
+          eventDate.setMinutes(minutes);
         }
 
-        return day.map((entry) => {
-          const eventDate = new Date(dateRange.start);
-          eventDate.setDate(eventDate.getDate() + index);
-          if (entry.time) {
-            const [hours, minutes] = entry.time.split(":");
-            eventDate.setHours(hours);
-            eventDate.setMinutes(minutes);
-          }
+        const activity = entry.activity;
+        const activityName = activity?.properties?.name || "Unnamed Activity";
 
-          const activity = entry.activity;
-          const activityName = activity?.properties?.name || "Unnamed Activity";
+        console.log(`Activity: ${activityName}, Date: ${eventDate}`); // Log each activity's date
 
-          return {
-            title: activityName,
-            start: eventDate,
-          };
-        });
-      })
-      .flat();
+        return {
+          title: activityName,
+          start: eventDate.toISOString(), // Use ISO string format
+          end: eventDate.toISOString(), // Assuming same start and end time, adjust if necessary
+        };
+      });
+    });
     setEventList(events);
   };
+
   const handleModalChoice = (choice) => {
     let selectedItinerary;
     if (choice === "popular") {
@@ -205,7 +208,7 @@ const ItineraryCreator = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            userId: currentUser,
+            userId: currentUser.uid, // Pass the userId as a string
             cityId: city.cityId,
             title,
             description,
@@ -231,13 +234,14 @@ const ItineraryCreator = () => {
       if (!response.ok) {
         throw new Error("Failed to save itinerary");
       }
+
+      setShowSaveButton(false); // Hide save button after saving
     } catch (error) {
       console.error("Failed to save itinerary:", error);
       console.error("Error Details:", error.message);
     } finally {
       setLoading(false);
       setProgress(100);
-      setShowSaveButton(false); // Hide save button after saving
     }
   };
 

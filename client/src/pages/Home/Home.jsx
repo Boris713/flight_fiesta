@@ -1,5 +1,5 @@
-import { useEffect, useState, useContext, useCallback } from "react";
-import "../../../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import React, { useEffect, useState, useContext, useCallback } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 import CardWrapper from "../../components/ui/CardWrapper/CardWrapper";
 import { AuthContext } from "../../contexts/authContexts/authContexts";
 import { useCity } from "../../contexts/cityContext/cityContext";

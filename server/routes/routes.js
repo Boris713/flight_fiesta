@@ -79,29 +79,32 @@ router.get("/image-search", async (req, res) => {
 
 router.post("/save-activities", async (req, res) => {
   const activities = req.body;
+  console.log("Received activities to save:", activities);
 
   try {
     await Promise.all(
       activities.map(async (activity) => {
         const existingActivity = await prisma.activity.findUnique({
-          where: { xid: activity.properties.xid }, // Ensure xid is correctly accessed
+          where: { xid: activity.xid },
         });
 
         if (!existingActivity) {
           await prisma.activity.create({
             data: {
-              title: activity.properties.name, // Ensure name is correctly accessed
-              category: activity.properties.kinds, // Ensure kinds is correctly accessed
-              startTime: new Date(),
-              endTime: new Date(),
-              xid: activity.properties.xid,
-              image: activity.imageUrl, // Ensure imageUrl is passed correctly
-              wikiLink: activity.properties.wikidata
-                ? `https://www.wikidata.org/wiki/${activity.properties.wikidata}`
-                : null, // Ensure wikidata is correctly accessed
+              title: activity.title,
+              category: activity.category,
+              startTime: new Date(activity.startTime),
+              endTime: new Date(activity.endTime),
+              xid: activity.xid,
+              image: activity.image,
+              wikiLink: activity.wikiLink,
+              itinerary: activity.itineraryId
+                ? { connect: { id: activity.itineraryId } }
+                : undefined,
             },
           });
         }
+        console.log(`Activity ${activity.xid} saved successfully.`);
       })
     );
 
@@ -225,6 +228,7 @@ router.post("/update-points", async (req, res) => {
     res.status(500).json({ error: "Error updating points" });
   }
 });
+
 router.get("/liked-activities", async (req, res) => {
   const { userId } = req.query;
 
@@ -307,6 +311,15 @@ router.get("/recommendations", async (req, res) => {
 router.post("/save", async (req, res) => {
   const { userId, cityId, title, description, startDate, endDate, activities } =
     req.body;
+  console.log("Saving itinerary with details:", {
+    userId,
+    cityId,
+    title,
+    description,
+    startDate,
+    endDate,
+    activities,
+  });
 
   try {
     const newItinerary = await prisma.itinerary.create({
@@ -317,8 +330,14 @@ router.post("/save", async (req, res) => {
         description,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        activities: {
-          create: activities.map((activity) => ({
+      },
+    });
+    console.log("New itinerary created with ID:", newItinerary.id);
+
+    for (const activity of activities) {
+      try {
+        await prisma.activity.create({
+          data: {
             title: activity.title,
             category: activity.category,
             startTime: new Date(activity.startTime),
@@ -326,12 +345,38 @@ router.post("/save", async (req, res) => {
             xid: activity.xid,
             image: activity.image,
             wikiLink: activity.wikiLink,
-          })),
-        },
-      },
-    });
+            itineraryId: newItinerary.id,
+          },
+        });
+        console.log(
+          `Activity ${activity.xid} linked to itinerary ${newItinerary.id}`
+        );
+      } catch (error) {
+        if (error.code === "P2002") {
+          const updatedActivity = await prisma.activity.update({
+            where: { xid: activity.xid },
+            data: {
+              startTime: new Date(activity.startTime),
+              endTime: new Date(activity.endTime),
+              itineraryId: newItinerary.id,
+            },
+          });
+          console.log(
+            `Activity ${activity.xid} updated with new date and linked to itinerary ${newItinerary.id}`
+          );
+        } else {
+          throw error;
+        }
+      }
+    }
 
-    res.status(200).json(newItinerary);
+    const updatedItinerary = await prisma.itinerary.findUnique({
+      where: { id: newItinerary.id },
+      include: { activities: true },
+    });
+    console.log("Final saved itinerary with activities:", updatedItinerary);
+
+    res.status(200).json(updatedItinerary);
   } catch (error) {
     console.error("Failed to save itinerary:", error);
     res.status(500).send(`Error saving itinerary: ${error.message}`);
@@ -356,7 +401,7 @@ router.get("/generate", async (req, res) => {
     let detailedPopularActivities = [];
 
     // Fetch details for each popular activity, but only up to the number of days
-    for (let i = 0; i < dayCount && i < popularActivities.length; i++) {
+    for (let i = 0; i < popularActivities.length; i++) {
       const activity = popularActivities[i];
       const details = await getDetailedActivity(activity.properties.xid);
       detailedPopularActivities.push(details);
@@ -373,7 +418,7 @@ router.get("/generate", async (req, res) => {
       popularActivities = popularActivitiesResponse.features;
 
       detailedPopularActivities = [];
-      for (let i = 0; i < dayCount && i < popularActivities.length; i++) {
+      for (let i = 0; i < popularActivities.length; i++) {
         const activity = popularActivities[i];
         const details = await getDetailedActivity(activity.properties.xid);
         detailedPopularActivities.push(details);
@@ -384,92 +429,110 @@ router.get("/generate", async (req, res) => {
     let itinerary2 = [];
     let usedActivities = new Set();
 
-    while (dayCount > 0 && detailedPopularActivities.length > 0) {
+    for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
       const format = type; // Use selected itinerary type
       const centralActivity = detailedPopularActivities.shift(); // Get a unique central activity for each day
 
-      if (usedActivities.has(centralActivity.xid)) {
-        continue; // Skip if the activity has already been used
-      }
-      usedActivities.add(centralActivity.xid);
+      if (centralActivity) {
+        if (usedActivities.has(centralActivity.xid)) {
+          dayIndex--; // Decrement dayIndex to retry for the same day
+          continue; // Skip if the activity has already been used
+        }
+        usedActivities.add(centralActivity.xid);
 
-      // Fetch additional activities based on the central activity's location
-      const additionalPopularActivitiesResponse = await fetchActivities(
-        centralActivity.point.lat,
-        centralActivity.point.lon,
-        parsedInterests.join(","),
-        30000
-      );
-
-      const additionalPopularActivities =
-        additionalPopularActivitiesResponse.features || [];
-
-      // Fetch recommended activities
-      const additionalRecommendedActivitiesResponse = await fetchActivities(
-        centralActivity.point.lat,
-        centralActivity.point.lon,
-        parsedInterests.join(","),
-        30000
-      );
-
-      const additionalRecommendedActivities =
-        additionalRecommendedActivitiesResponse.features || [];
-
-      // Filter out used activities from additional activities
-      const filteredPopularActivities = additionalPopularActivities.filter(
-        (activity) => !usedActivities.has(activity.properties.xid)
-      );
-      const filteredRecommendedActivities =
-        additionalRecommendedActivities.filter(
-          (activity) => !usedActivities.has(activity.properties.xid)
+        // Fetch additional activities based on the central activity's location
+        const additionalPopularActivitiesResponse = await fetchActivities(
+          centralActivity.point.lat,
+          centralActivity.point.lon,
+          parsedInterests.join(","),
+          30000
         );
 
-      // Get a random template from the database
-      const templates = await prisma.template.findMany({
-        where: { type: format },
-        orderBy: { id: "desc" },
-      });
+        const additionalPopularActivities =
+          additionalPopularActivitiesResponse.features || [];
 
-      if (templates.length === 0) {
-        throw new Error("No templates found for the specified format");
+        // Fetch recommended activities
+        const additionalRecommendedActivitiesResponse = await fetchActivities(
+          centralActivity.point.lat,
+          centralActivity.point.lon,
+          parsedInterests.join(","),
+          30000
+        );
+
+        const additionalRecommendedActivities =
+          additionalRecommendedActivitiesResponse.features || [];
+
+        // Filter out used activities from additional activities
+        const filteredPopularActivities = additionalPopularActivities.filter(
+          (activity) => !usedActivities.has(activity.properties.xid)
+        );
+        const filteredRecommendedActivities =
+          additionalRecommendedActivities.filter(
+            (activity) => !usedActivities.has(activity.properties.xid)
+          );
+
+        // Get a random template from the database
+        const templates = await prisma.template.findMany({
+          where: { type: format },
+          orderBy: { id: "desc" },
+        });
+
+        if (templates.length === 0) {
+          throw new Error("No templates found for the specified format");
+        }
+
+        const template =
+          templates[Math.floor(Math.random() * templates.length)];
+        const times = template.times;
+
+        const dayActivities1 = fillDayActivities(
+          centralActivity,
+          filteredPopularActivities,
+          filteredRecommendedActivities,
+          format,
+          0.8,
+          0.2,
+          times,
+          usedActivities // Pass the used activities set to update it within fillDayActivities
+        );
+
+        const dayActivities2 = fillDayActivities(
+          centralActivity,
+          filteredPopularActivities,
+          filteredRecommendedActivities,
+          format,
+          0.2, // 20% popular, 80% recommendations
+          0.8,
+          times,
+          usedActivities // Pass the used activities set to update it within fillDayActivities
+        );
+
+        itinerary1.push(dayActivities1);
+        itinerary2.push(dayActivities2);
       }
 
-      const template = templates[Math.floor(Math.random() * templates.length)];
-      const times = template.times;
-
-      const dayActivities1 = fillDayActivities(
-        centralActivity,
-        filteredPopularActivities,
-        filteredRecommendedActivities,
-        format,
-        0.8,
-        0.2,
-        times,
-        usedActivities // Pass the used activities set to update it within fillDayActivities
-      );
-
-      const dayActivities2 = fillDayActivities(
-        centralActivity,
-        filteredPopularActivities,
-        filteredRecommendedActivities,
-        format,
-        0.2, // 20% popular, 80% recommendations
-        0.8,
-        times,
-        usedActivities // Pass the used activities set to update it within fillDayActivities
-      );
-
-      itinerary1.push(dayActivities1);
-      itinerary2.push(dayActivities2);
-
       start.setDate(start.getDate() + 1);
-      dayCount--;
     }
 
     res.json({ itinerary1, itinerary2 });
   } catch (error) {
     console.error("Failed to generate itinerary:", error.message);
     res.status(500).send(`Error generating itinerary: ${error.message}`);
+  }
+});
+
+router.get("/fetch-itineraries", async (req, res) => {
+  try {
+    const itineraries = await prisma.itinerary.findMany({
+      include: {
+        activities: true,
+      },
+    });
+    console.log("Fetched itineraries from database:", itineraries); // Log fetched itineraries
+    res.status(200).json(itineraries);
+  } catch (error) {
+    console.error("Error fetching itineraries:", error);
+    res.status(500).send("Error fetching itineraries");
   }
 });
 

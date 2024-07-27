@@ -68,13 +68,26 @@ const fetchActivities = async (latitude, longitude, kinds, radius) => {
     apikey: process.env.MAP_API_KEY,
   };
 
-  try {
-    const response = await axios.get(baseUrl, { params });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching activities:", error.message);
-    throw error;
+  const retryDelay = (retryCount) => {
+    return new Promise((resolve) => setTimeout(resolve, 1000 * retryCount));
+  };
+
+  let retryCount = 0;
+  while (retryCount < 5) {
+    try {
+      const response = await axios.get(baseUrl, { params });
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        retryCount++;
+        await retryDelay(retryCount);
+      } else {
+        console.error("Error fetching activities:", error.message);
+        throw error;
+      }
+    }
   }
+  throw new Error("Exceeded retry limit for fetching activities");
 };
 
 const getDetailedActivity = async (xid) => {
@@ -121,6 +134,7 @@ const popular = async (latitude, longitude, cityId, radius = 20000) => {
     throw error;
   }
 };
+
 const updatePoints = async (
   entityId,
   category,
