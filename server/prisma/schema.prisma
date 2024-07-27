@@ -44,7 +44,7 @@ model Activity {
   startTime   DateTime
   endTime     DateTime
   liked       Boolean  @default(false)
-  xid         String
+  xid         String   @unique
   image       String?
   wikiLink    String?
   itineraryId Int?

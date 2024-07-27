@@ -8,7 +8,11 @@ export function useCity() {
 }
 
 export function CityProvider({ children }) {
-  const [city, setCity] = useState({ coords: [37.7749, -122.4194], cityId: 1 });
+  const [city, setCity] = useState({
+    coords: [37.7749, -122.4194],
+    cityId: 1,
+    name: "San Francisco",
+  });
   const value = {
     city,
     setCity,
