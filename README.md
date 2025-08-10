@@ -25,4 +25,4 @@ Traditional travel apps give everyone the same generic recommendations. Flight F
 - **SVD Collaborative Filtering** with custom dual-matrix approach
 - **Combines user preferences + city popularity** for better recommendations
 - **Handles sparse data** effectively for travel use case
-- **Real-time interest scoring** (+2 clicks, +4 likes, -4 dislikes)
+- **Real-time interest scoring**
